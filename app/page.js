@@ -11,6 +11,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
 
 export default function Home() {
   const [inventory, setInventory] = useState([]);
@@ -27,8 +28,34 @@ export default function Home() {
   const [iscapture,setIsCapture]=useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [useBackCamera, setUseBackCamera] = useState(false);
+  const [hasBackCamera, setHasBackCamera] = useState(true);
 
   const webcamRef = useRef(null);
+
+
+  useEffect(() => {
+    const checkCameras = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        const hasBack = videoDevices.some(device => device.label.toLowerCase().includes('back'));
+        setHasBackCamera(hasBack);
+        if (!hasBack) {
+          setError('Back camera not found. Switching to front camera.');
+          setUseBackCamera(false);
+        }
+      } catch (err) {
+        console.error('Error checking cameras:', err);
+        setError('Error checking cameras');
+      }
+    };
+  
+    if (showCamera) {
+      checkCameras();
+    }
+  }, [showCamera,useBackCamera]);
+  
 
   const capture = async () => {
     const imageSrc = capturedImage;
@@ -256,6 +283,9 @@ export default function Home() {
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
                 style={{ marginBottom: '10px' }}
+                videoConstraints={{
+                  facingMode: useBackCamera ? { exact: "environment" } : "user"
+                }}
               />
               }
               {iscapture && capturedImage &&
@@ -284,10 +314,17 @@ export default function Home() {
               <Button
                 variant="outlined"
                 color="secondary"
-                onClick={() => setShowCamera(false)}
+                onClick={() => {setShowCamera(false),setError('')}}
               >
                 Cancel
               </Button>
+              <IconButton
+                  color="primary"
+                  onClick={() => {setUseBackCamera(!useBackCamera), setError('')}}
+                  sx={{ ml: 2 }}
+                >
+                <FlipCameraIosIcon />
+                </IconButton>
               </Box>}
               { iscapture && <Box>
               <Button
