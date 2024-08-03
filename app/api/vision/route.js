@@ -1,5 +1,5 @@
 const vision = require('@google-cloud/vision');
-const keyFilename = "../tracker/pantry.json";
+const keyFilename = process.env.NEXT_PUBLIC_GOOGLE_APPLICATION_CREDENTIALS;
 
 
 const client = new vision.ImageAnnotatorClient({
