@@ -41,7 +41,6 @@ export default function Home() {
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         const hasBack = videoDevices.some(device => device.label.toLowerCase().includes('back'));
         if (!hasBack) {
-          setError('Back camera not found. Switching to front camera.');
           setUseBackCamera(false);
         }
       } catch (err) {
