@@ -29,7 +29,7 @@ export default function Home() {
   const [capturedImage, setCapturedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [useBackCamera, setUseBackCamera] = useState(false);
-  const [hasBackCamera, setHasBackCamera] = useState(true);
+  
 
   const webcamRef = useRef(null);
 
@@ -40,7 +40,6 @@ export default function Home() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         const hasBack = videoDevices.some(device => device.label.toLowerCase().includes('back'));
-        setHasBackCamera(hasBack);
         if (!hasBack) {
           setError('Back camera not found. Switching to front camera.');
           setUseBackCamera(false);
@@ -320,7 +319,7 @@ export default function Home() {
               </Button>
               <IconButton
                   color="primary"
-                  onClick={() => {setUseBackCamera(!useBackCamera), setError('')}}
+                  onClick={() => {setUseBackCamera(prevState => !prevState), setError('')}}
                   sx={{ ml: 2 }}
                 >
                 <FlipCameraIosIcon />
