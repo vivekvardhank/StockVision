@@ -1,0 +1,410 @@
+'use client';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { firestore } from '@/firebase';
+import { Box, Typography, Button, TextField, IconButton, Card, CardContent, CardActions, Grid, Container, AppBar, Toolbar, Stack, Backdrop, CircularProgress} from '@mui/material';
+import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc } from "firebase/firestore";
+import Search from './components/search';
+import Webcam from "react-webcam";
+import axios from 'axios';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+
+export default function Home() {
+  const [inventory, setInventory] = useState([]);
+  const [filteredInventory, setFilteredInventory] = useState([]);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemCount, setNewItemCount] = useState('');
+  const [addTheItem, setAddTheItem] = useState(false);
+  const [updateId, setUpdateId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editCount, setEditCount] = useState('');
+  const [showCamera, setShowCamera] = useState(false);
+  const [error, setError] = useState('');
+  const [activeItemId, setActiveItemId] = useState(null);
+  const [iscapture,setIsCapture]=useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const webcamRef = useRef(null);
+
+  const capture = async () => {
+    const imageSrc = capturedImage;
+    if (imageSrc) {
+      const base64Image = imageSrc.split(',')[1];
+      setIsLoading(true);
+      try {
+        const response = await axios.post('/api/vision', { imageBase64: base64Image });
+        const { name } = response.data;
+        setNewItemName(name);
+        setShowCamera(false);
+        setIsCapture(false);
+        setCapturedImage(null)
+      } catch (error) {
+        console.error(`item not found ${error}`);
+        setError('Item not found. Please try again.');
+        setIsCapture(false);
+        setCapturedImage(null);
+        setError('Retry...')
+      }finally {
+        setIsLoading(false); 
+      }
+    }
+  };
+
+
+  const verifyCapture = useCallback(async () => {
+    setError('')
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (imageSrc) {
+      setCapturedImage(imageSrc)
+      setIsCapture(true);
+      
+    }
+  }, [webcamRef]);
+
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.inventory-item') && !event.target.closest('.item-actions')) {
+        setActiveItemId(null);
+      }
+    };
+  
+    document.addEventListener('click', handleClickOutside);
+  
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+  
+  
+  
+
+
+  const updateInventory = async () => {
+    const snapshot = await getDocs(collection(firestore, 'inventory'));
+    const inventoryList = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setInventory(inventoryList);
+    setFilteredInventory(inventoryList);
+  };
+
+  const addItem = async () => {
+    if (!newItemName || !newItemCount) {
+      setError('Both fields are required');
+      return;
+    }
+    setError('');
+    if (newItemName && newItemCount) {
+      const existingData = inventory.filter(item =>
+        item.name.toLowerCase() === newItemName.toLowerCase()
+      );
+    if (existingData.length > 0) {
+        setError('Item with same name already exists');
+        return;
+     }
+    }
+    if (newItemName && newItemCount) {
+      await addDoc(collection(firestore, 'inventory'), {
+        name: newItemName,
+        count: newItemCount
+      });
+      setNewItemName('');
+      setNewItemCount('');
+      updateInventory();
+      setAddTheItem(false);
+      setShowCamera(false);
+      setIsCapture(false);
+      setCapturedImage(null)
+    }
+  };
+
+  const removeItem = async (id) => {
+    await deleteDoc(doc(firestore, 'inventory', id));
+    updateInventory();
+  };
+
+  const updateItemCount = async (id, newName, newCount) => {
+    if (Number(newCount) < 0) {
+      return;
+    }
+    await updateDoc(doc(firestore, 'inventory', id), {
+      name: newName,
+      count: newCount
+    });
+    updateInventory();
+  };
+
+  const handleEdit = (item) => {
+    setUpdateId(item.id);
+    setEditName(item.name);
+    setEditCount(item.count);
+  };
+
+  const saveEdit = async (id) => {
+    await updateDoc(doc(firestore, 'inventory', id), {
+      name: editName,
+      count: Number(editCount)
+    });
+    setUpdateId(null);
+    updateInventory();
+  };
+
+  const toggleItemActions = (id,e) => {
+    e.stopPropagation();
+    setActiveItemId(activeItemId === id ? null : id);
+  };
+
+  useEffect(() => {
+    updateInventory();
+  }, []);
+
+  return (
+    <Box>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Inventory Tracker
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <Container>
+        <Box sx={{ my: 4 }}>
+          <Search inventory={inventory} setFilteredInventory={setFilteredInventory} />
+          {!addTheItem && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => { setAddTheItem(true); setNewItemCount(''); setError(''); }}
+              startIcon={<AddIcon />}
+              sx={{ mb: 2 ,mt: 1}}
+            >
+              Add Item
+            </Button>
+          )}
+          {addTheItem && (
+            <Box sx={{ mb: 2,mt:2 }}>
+              <Typography variant="h6">Add Inventory</Typography>
+              <TextField
+                label="Item Name"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                sx={{ mr: 2, mb: 1 }}
+              />
+              <TextField
+                label="Item Count"
+                type="number"
+                value={newItemCount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value < 0) {
+                    setNewItemCount('0');
+                  } else {
+                    setNewItemCount(value);
+                  }
+                }}
+                sx={{ mr: 2, mb: 1 }}
+              />
+              <Stack direction="row" spacing={2} >
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={addItem}
+                sx={{ mr: 2 }}
+              >
+                Add
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => { setAddTheItem(false), setShowCamera(false), setNewItemName('') }}
+                sx={{ mr: 2 }}
+              >
+                Cancel
+              </Button>
+              <IconButton
+                color="primary"
+                onClick={() => setShowCamera(true)}
+              >
+                <CameraAltIcon />
+              </IconButton>
+              </Stack>
+              
+              {error && <Typography color="error">{error}</Typography>}
+            </Box>
+          )}
+          {showCamera && (
+            <Box sx={{ mb: 2, 
+              width: '100%', 
+              maxWidth: '640px', 
+              marginBottom: '30px',
+              '@media (max-width: 960px)': {
+                maxWidth: '480px'  
+              },
+              '@media (max-width: 600px)': {
+                maxWidth: '100%'   
+              } }} >
+              <Stack spacing={1}>
+             {!iscapture && !capturedImage &&
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                style={{ marginBottom: '10px' }}
+              />
+              }
+              {iscapture && capturedImage &&
+               <Box sx={{ position: 'relative', width: '100%' }}>
+               <img src={capturedImage} alt="Captured" style={{ marginBottom: '10px' }} />
+               {isLoading && (
+                 <Backdrop
+                   sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                   open={isLoading}
+                 >
+                   <CircularProgress color="inherit" />
+                 </Backdrop>
+               )}
+             </Box>
+              }
+              <Stack direction="row" spacing={2} justifyContent="center">
+              { !iscapture && <Box>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={verifyCapture}
+                sx={{ mr: 2 }}
+              >
+                Capture
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => setShowCamera(false)}
+              >
+                Cancel
+              </Button>
+              </Box>}
+              { iscapture && <Box>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={capture}
+                sx={{ mr: 2 }}
+              >
+                Confirm
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => {setIsCapture(false),setCapturedImage(null)}}
+              >
+                Retake
+              </Button>
+              </Box>}
+
+              </Stack>
+              </Stack>
+            
+            </Box>
+          )}
+          <Typography variant="h4" sx={{ mb: 2}}>Inventory</Typography>
+          {filteredInventory.length === 0 ? (
+            <Typography>No items found</Typography>
+          ) : (
+            <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+              {filteredInventory.map((item) => (
+                <Grid item xs={12} sm={6} md={4} key={item.id}  >
+                  <Card>
+                    <CardContent >
+                      {updateId === item.id ? (
+                        <Box>
+                          <TextField
+                            label="Item Name"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            sx={{ mr: 2, mb: 1 }}
+                          />
+                          <TextField
+                            label="Item Count"
+                            type="number"
+                            value={editCount}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value >= 0) {
+                                setEditCount(value);
+                              }
+                            }}
+                            sx={{ mr: 2, mb: 1 }}
+                          />
+                          <Stack direction="row" spacing={1}>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => saveEdit(item.id)}
+                            sx={{ mr: 2 }}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="secondary"
+                            onClick={() => setUpdateId(null)}
+                          >
+                            Cancel
+                          </Button>
+                          </Stack>
+                        </Box>
+                      ) : (
+                        <Box>
+                          <Box className="inventory-item" onClick={(e) => toggleItemActions(item.id,e)} sx={{ cursor: 'pointer' }}>
+                            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                              <Typography variant="h6">{item.name}</Typography>
+                              <Typography variant="h6">{`Quantity : ${item.count}`}</Typography>
+                            </Stack>
+                          </Box>
+                          {activeItemId === item.id && (
+                            <CardActions  className="item-actions" sx={{ display: 'flex', justifyContent: 'space-between', backgroundColor:'lightgrey', marginTop:'14',borderRadius:'20px', marginBottom:'-20px' }} onClick={(e) => e.stopPropagation()}>
+                              <IconButton
+                                color="primary"
+                                onClick={(e) => {e.stopPropagation(); updateItemCount(item.id, item.name, String(Number(item.count) + 1))}}
+                              >
+                                <AddIcon />
+                              </IconButton>
+                              <IconButton
+                                color="secondary"
+                                onClick={(e) =>{e.stopPropagation(); updateItemCount(item.id, item.name, String(Number(item.count) - 1))}}
+                              >
+                                <RemoveIcon />
+                              </IconButton>
+                              <IconButton
+                                color="primary"
+                                onClick={(e) => {e.stopPropagation();handleEdit(item)}}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                              <IconButton
+                                color="error"
+                                onClick={(e) => {e.stopPropagation();removeItem(item.id)}}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </CardActions>
+                          )}
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
+      </Container>
+    </Box>
+  );
+}
