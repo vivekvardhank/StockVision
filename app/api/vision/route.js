@@ -2,7 +2,6 @@ require('dotenv').config();
 const crypto = require('crypto');
 const vision = require('@google-cloud/vision');
 
-
 function decrypt(text, key, iv) {
   let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key), Buffer.from(iv));
   let decrypted = decipher.update(text, 'hex', 'utf8');
