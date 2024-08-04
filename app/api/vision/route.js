@@ -72,9 +72,6 @@ export async function POST(req) {
 //OpenAI API
 require('dotenv').config();
 const OpenAI = require("openai");
-
-console.log(process.env.NEXT_PUBLIC_ENCRYPTION_KEY);
-
 const openai = new OpenAI({ apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY });
 
 export async function POST(req) {
