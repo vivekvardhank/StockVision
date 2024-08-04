@@ -63,11 +63,20 @@ export default function Home() {
   
   const getRecipe= async()=>{
     try{
-    const response = await axios.post('/api/recipes', { text:"hello" });
+
+    const result = inventory.reduce((acc, item) => {
+    const name = item.name.trim();
+    const count = parseInt(item.count, 10);
+    acc[name] = count;
+    return acc;
+    }, {});
+      
+    const response = await axios.post('/api/recipes', result);
     const data = response.data;
     const recipe = JSON.parse(data.recipe); 
     setRecipe(recipe)
     const steps = recipe.description.split(/\n\d+\.\s/).slice(1);
+    console.log(recipe)
     setSteps(steps);
   } catch (error) {
     console.error("Error fetching recipe:", error);
@@ -218,7 +227,7 @@ export default function Home() {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Inventory Tracker
+            Stock vision
           </Typography>
         </Toolbar>
       </AppBar>
