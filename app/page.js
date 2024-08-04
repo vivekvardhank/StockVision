@@ -34,6 +34,7 @@ export default function Home() {
   const [recipe, setRecipe] = useState(null);
   const [steps, setSteps] = useState(null);
   const [recipeLoading,setRecipeLoading]=useState(false);
+  const [recipeError,setRecipeError]=useState(false);
   
 
   const webcamRef = useRef(null);
@@ -81,8 +82,11 @@ export default function Home() {
     console.log(recipe)
     setSteps(steps);
     setRecipeLoading(false)
+    setRecipeError(false)
   } catch (error) {
     console.error("Error fetching recipe:", error);
+    setRecipeLoading(false)
+    setRecipeError(true)
   }
 };
 
@@ -484,13 +488,14 @@ export default function Home() {
             Get recipes
           </Button>
           { recipe &&
-          <Button variant="outlined"  onClick={()=>{setRecipe(null), setSteps(null)}}>
+          <Button variant="outlined"  onClick={()=>{setRecipe(null), setSteps(null), setRecipeError(false)}}>
              Clear
           </Button>
            }
 
         </Box>
         {recipeLoading && <Typography variant="h6" sx={{mt:4,ml:4}}>...Loading</Typography>}
+        {recipeError && <Typography variant="h6" sx={{mt:4,ml:4, color:'red'}}>Try again</Typography> }
 
         {recipe && (
           <Card sx={{ mt: 5, boxShadow: 3, width: '100%', maxWidth: 800 }}>
