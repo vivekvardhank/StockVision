@@ -33,6 +33,7 @@ export default function Home() {
   const [useBackCamera, setUseBackCamera] = useState(false);
   const [recipe, setRecipe] = useState(null);
   const [steps, setSteps] = useState(null);
+  const [recipeLoading,setRecipeLoading]=useState(false);
   
 
   const webcamRef = useRef(null);
@@ -62,6 +63,7 @@ export default function Home() {
   
   
   const getRecipe= async()=>{
+    setRecipeLoading(true)
     try{
 
     const result = inventory.reduce((acc, item) => {
@@ -78,6 +80,7 @@ export default function Home() {
     const steps = recipe.description.split(/\n\d+\.\s/).slice(1);
     console.log(recipe)
     setSteps(steps);
+    setRecipeLoading(false)
   } catch (error) {
     console.error("Error fetching recipe:", error);
   }
@@ -487,6 +490,7 @@ export default function Home() {
            }
 
         </Box>
+        {recipeLoading && <Typography variant="h6" sx={{mt:4,ml:4}}>...Loading</Typography>}
 
         {recipe && (
           <Card sx={{ mt: 5, boxShadow: 3, width: '100%', maxWidth: 800 }}>
