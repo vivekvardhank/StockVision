@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from "react";
 import { firestore } from '@/firebase';
-import { Box, Typography, Button, TextField, IconButton, Card, CardContent, CardActions, Grid, Container, AppBar, Toolbar, Stack, Backdrop, CircularProgress} from '@mui/material';
+import { Box, Typography, Button, TextField, IconButton, Card, CardHeader,CardContent, CardActions, Grid, Container, AppBar, Toolbar, Stack, Backdrop, CircularProgress,useMediaQuery, useTheme} from '@mui/material';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc } from "firebase/firestore";
 import Search from './components/search';
 import Webcam from "react-webcam";
@@ -12,6 +12,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
+
 
 export default function Home() {
   const [inventory, setInventory] = useState([]);
@@ -29,9 +30,13 @@ export default function Home() {
   const [capturedImage, setCapturedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [useBackCamera, setUseBackCamera] = useState(false);
+  const [recipe, setRecipe] = useState(null);
+  const [steps, setSteps] = useState(null);
   
 
   const webcamRef = useRef(null);
+  const theme = useTheme();
+  const isSmallDevice = useMediaQuery(theme.breakpoints.down('sm'));
 
 
   useEffect(() => {
@@ -40,7 +45,7 @@ export default function Home() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         const hasBack = videoDevices.some(device => device.label.toLowerCase().includes('back'));
-        if (!hasBack) {
+        if(!hasBack){
           setUseBackCamera(false);
         }
       } catch (err) {
@@ -54,6 +59,24 @@ export default function Home() {
     }
   }, [showCamera,useBackCamera]);
   
+  
+  const getRecipe= async()=>{
+    try{
+    const response = await axios.post('/api/recipes', { text:"hello" });
+    const data = response.data;
+    const recipe = JSON.parse(data.recipe); 
+    setRecipe(recipe)
+    const steps = recipe.description.split(/\n\d+\.\s/).slice(1);
+    setSteps(steps);
+  } catch (error) {
+    console.error("Error fetching recipe:", error);
+  }
+};
+
+
+
+
+
 
   const capture = async () => {
     const imageSrc = capturedImage;
@@ -349,7 +372,7 @@ export default function Home() {
           )}
           <Typography variant="h4" sx={{ mb: 2}}>Inventory</Typography>
           {filteredInventory.length === 0 ? (
-            <Typography>No items found</Typography>
+            <Typography>No items</Typography>
           ) : (
             <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
               {filteredInventory.map((item) => (
@@ -438,6 +461,54 @@ export default function Home() {
               ))}
             </Grid>
           )}
+          { filteredInventory.length !== 0 && <Box sx={{ mt: 5, display: 'flex', justifyContent: isSmallDevice ? 'center' : 'flex-start'}}>
+      <Box sx={{ width: '80%', maxWidth: 800 }}>
+        <Typography variant="h6">
+          Why don't you try out some recipes?
+        </Typography>
+        <Box sx={{ display: 'flex',  mt: 2 , gap:3}}>
+          <Button variant="contained" color="primary" onClick={getRecipe}>
+            Get recipes
+          </Button>
+          { recipe &&
+          <Button variant="outlined"  onClick={()=>{setRecipe(null), setSteps(null)}}>
+             Clear
+          </Button>
+           }
+
+        </Box>
+
+        {recipe && (
+          <Card sx={{ mt: 5, boxShadow: 3, width: '100%', maxWidth: 800 }}>
+          <CardHeader
+            title={recipe.recipe_name}
+            titleTypographyProps={{ variant: 'h4', align: 'center' }}
+            sx={{ backgroundColor: '#f5f5f5', py: 2 }}
+          />
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Ingredients:</Typography>
+            <Box component="ul" sx={{ pl: 3, mb: 3 }}>
+              {Object.entries(recipe.items).map(([item, quantity], index) => (
+                <Box component="li" key={index} sx={{ mb: 1 }}>
+                  <Typography variant="body1">{item}: {quantity}</Typography>
+                </Box>
+              ))}
+            </Box>
+            <Typography variant="h6" sx={{ mb: 2 }}>Step-by-step instructions:</Typography>
+              <Box component="ol" sx={{ pl: 3 }}>
+                    {steps.map((step, index) => (
+                   <Box component="li" key={index} sx={{ mb: 1 }}>
+                  <Typography variant="body1">{step}</Typography>
+              </Box>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+         )}
+        </Box>
+       </Box>}
+
+
         </Box>
       </Container>
     </Box>
