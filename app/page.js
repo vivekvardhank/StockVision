@@ -12,6 +12,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
+import Image from 'next/image';
 
 
 export default function Home() {
@@ -311,7 +312,7 @@ export default function Home() {
               }
               {iscapture && capturedImage &&
                <Box sx={{ position: 'relative', width: '100%' }}>
-               <img src={capturedImage} alt="Captured" style={{ marginBottom: '10px' }} />
+               <Image src={capturedImage} alt="Captured" style={{ marginBottom: '10px' }} />
                {isLoading && (
                  <Backdrop
                    sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
@@ -464,7 +465,7 @@ export default function Home() {
           { filteredInventory.length !== 0 && <Box sx={{ mt: 5, display: 'flex', justifyContent: isSmallDevice ? 'center' : 'flex-start'}}>
       <Box sx={{ width: '80%', maxWidth: 800 }}>
         <Typography variant="h6">
-          Why don't you try out some recipes?
+          Why don&apos;t you try out some recipes?
         </Typography>
         <Box sx={{ display: 'flex',  mt: 2 , gap:3}}>
           <Button variant="contained" color="primary" onClick={getRecipe}>
