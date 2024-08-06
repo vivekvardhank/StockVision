@@ -64,7 +64,8 @@ export default function Home() {
   
   
   const getRecipe= async()=>{
-    setRecipeLoading(true)
+    setRecipeLoading(true);
+     setRecipe(null);
     setRecipeError(false);
     try{
 
