@@ -65,6 +65,7 @@ export default function Home() {
   
   const getRecipe= async()=>{
     setRecipeLoading(true)
+    setRecipeError(false);
     try{
 
     const result = inventory.reduce((acc, item) => {
@@ -75,14 +76,25 @@ export default function Home() {
     }, {});
       
     const response = await axios.post('/api/recipes', result);
-    const data = response.data;
-    const recipe = JSON.parse(data.recipe); 
-    setRecipe(recipe)
-    const steps = recipe.description.split(/\n\d+\.\s/).slice(1);
-    console.log(recipe)
-    setSteps(steps);
-    setRecipeLoading(false)
-    setRecipeError(false)
+    if (response && response.data) {
+      const data = response.data;
+      const recipe = data.recipe;
+      console.log(recipe)
+      setRecipe(recipe);
+      const steps = [];
+      const descriptionLines = recipe.description.split('\n');
+      descriptionLines.forEach(line => {
+      const match = line.match(/^(\d+)\.\s(.+)$/);
+     if (match) {
+        const stepNumber = parseInt(match[1], 10) - 1; 
+        const stepText = match[2];
+        steps[stepNumber] = stepText;
+      }
+    });
+      setSteps(steps);
+      setRecipeLoading(false)
+      
+    } 
   } catch (error) {
     console.error("Error fetching recipe:", error);
     setRecipeLoading(false)
